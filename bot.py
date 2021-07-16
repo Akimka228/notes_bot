@@ -2,7 +2,7 @@ import telebot
 from bot_config import *
 from keyboard import *
 from database import *
-
+import random
 
 bot = telebot.TeleBot(bot_apikey)
 
