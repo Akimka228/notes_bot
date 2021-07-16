@@ -22,10 +22,10 @@ def get_notes(user_id):
     return output_text
 
 
-def send_note(user_id, text):
+def send_note(user_id, text):  #
     url = "https://practicebot-a0f1.restdb.io/rest/notes"
     title = text.split('^')[0]
-    description = text.split('^')[1]
+    description = text.split('^')[1] if len(text.split('^')) == 2 else "Нет описания"
     payload = json.dumps( {"Title": title,
                        "Description": description, 
                        "UserId": user_id})

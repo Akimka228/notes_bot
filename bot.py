@@ -8,7 +8,7 @@ bot = telebot.TeleBot(bot_apikey)
 
 
 # Деражть базу id - дата в памяти, как только send / delete/ - подтянуть новую 
-msg = None
+messages = {}
 
 def show_main_keyboard(user_id):
     bot.send_message(user_id, text="Выберите действие", reply_markup=main_keyboard())
@@ -20,20 +20,9 @@ def show_all(user_id):
 
 
 def add_note(user_id):
-    global msg
-    msg = bot.send_message(user_id, "Введите название заметки (^ для разделения названия и описания)")
-    #bot.register_next_step_handler(msg, add_note_step)
-
-
-""" def add_note_step(message):
-    if not send_note(message.from_user.id, message.text):
-        bot.send_message(message.from_user.id, "Технические работы. Попробуйте позже.")
-    else:
-        bot.send_message(message.from_user.id, "Заметка создана.")
-        show_main_keyboard(message.from_user.id) """
-        
-
-
+    msg = bot.send_message(user_id, "Введите название и описание заметки (^ для разделения названия и описания). Для отправки, ответьте на данное сообщение своим")
+    messages.update({user_id:msg})
+    
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
@@ -49,11 +38,9 @@ def greetings(message):
         bot.send_message(message.from_user.id, "Привет, сохраняй здесь свои заметки")
         show_main_keyboard(message.from_user.id)
 
-    if message.reply_to_message:
-        print(message.reply_to_message.message_id)
-        if message.reply_to_message.message_id == msg.message_id:
-            print(f"Ответ на {msg.text} : {message.text}")
-    print(message.from_user.id)
+    if message.reply_to_message != None:
+        if message.reply_to_message.message_id == messages[message.from_user.id].message_id:
+            send_note(message.from_user.id, message.text)
 
 
 
