@@ -6,9 +6,9 @@ import random
 
 bot = telebot.TeleBot(bot_apikey)
 
+replyes_message = {}
 
-# Деражть базу id - дата в памяти, как только send / delete/ - подтянуть новую 
-messages = {}
+users_answers = {}
 
 def show_main_keyboard(user_id):
     bot.send_message(user_id, text="Выберите действие", reply_markup=main_keyboard())
@@ -19,17 +19,37 @@ def show_all(user_id):
     show_main_keyboard(user_id)
 
 
-def add_note(user_id):
-    msg = bot.send_message(user_id, "Введите название и описание заметки (^ для разделения названия и описания). Для отправки, ответьте на данное сообщение своим")
-    messages.update({user_id:msg})
+def add_note(user_id, action):
+    if action == "title":
+        users_answers.update({user_id:[]})
+        msg = bot.send_message(user_id, "Введите название добавляемой заметки. Для отправки, ответьте на данное сообщение своим")
+        replyes_message.update({user_id:(msg, "title")})
+
+    elif action == "description":
+        msg = bot.send_message(user_id, "Введите описание добавляемой заметки. Для отправки, ответьте на данное сообщение своим")
+        replyes_message.update({user_id:(msg, "description")})
+    
+    elif action == "send":
+        if send_note(user_id, users_answers[user_id][0], users_answers[user_id][1]):
+            bot.send_message(user_id, "Заметка успешно сохранена")
+        else:
+            bot.send_message(user_id, "Ошибка, попробуйте позже")
+        show_main_keyboard(user_id)
+
+def delete_note(user_id):
+    pass
+
     
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     if call.data == "show_all":
         show_all(call.from_user.id)
-    if call.data == "add_note":
-        add_note(call.from_user.id)
+    elif call.data == "add_note":
+        add_note(call.from_user.id, "title")
+    elif call.data == "delete_note":
+        delete_note(call.from_user.id)
+    
 
 
 @bot.message_handler(content_types=['text'])
@@ -38,9 +58,18 @@ def greetings(message):
         bot.send_message(message.from_user.id, "Привет, сохраняй здесь свои заметки")
         show_main_keyboard(message.from_user.id)
 
-    if message.reply_to_message != None:
-        if message.reply_to_message.message_id == messages[message.from_user.id].message_id:
-            send_note(message.from_user.id, message.text)
+    if message.reply_to_message:
+        if message.reply_to_message.message_id == replyes_message[message.from_user.id][0].message_id:
+            if replyes_message[message.from_user.id][1] == "title":
+                users_answers[message.from_user.id].append(message.text)
+                add_note(message.from_user.id, "description")
+                print(replyes_message[message.from_user.id][1])
+
+            elif replyes_message[message.from_user.id][1] == "description":
+                users_answers[message.from_user.id].append(message.text)
+                add_note(message.from_user.id, "send")
+                users_answers.clear()
+
 
 
 
