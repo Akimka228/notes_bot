@@ -7,8 +7,7 @@ from bot_config import *
  
 
 def get_notes(user_id):
-    a = ''
-    url = f'https://practicebot-a0f1.restdb.io/rest/notes?q={a}&filter={user_id}'
+    url = f'https://practicebot-a0f1.restdb.io/rest/notes?q=&filter={user_id}'
     response = requests.request("GET", url, headers=headers)
     notes = json.loads(response.text)
     output_text = ''
@@ -21,7 +20,7 @@ def get_notes(user_id):
     return output_text
 
 
-def send_note(user_id, title, description):  #
+def send_note(user_id, title, description):
     url = "https://practicebot-a0f1.restdb.io/rest/notes"
     payload = json.dumps( {"Title": title,
                        "Description": description, 
@@ -31,4 +30,20 @@ def send_note(user_id, title, description):  #
         return True
     else:
         return False
+
+
+def delete_note(user_id, note_number):
+    note_number = int(note_number)
+    get_url = f'https://practicebot-a0f1.restdb.io/rest/notes?q=&filter={user_id}'
+    response = requests.request("GET", get_url, headers=headers)
+    notes = json.loads(response.text)
+    delete_note_id = notes[note_number - 1]["_id"]
+    del_url = f"https://practicebot-a0f1.restdb.io/rest/notes/{delete_note_id}"
+    response = requests.request("DELETE", del_url, headers=headers)
+    if response.ok:
+        return True
+    else:
+        return False
+
+
 

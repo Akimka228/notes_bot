@@ -34,12 +34,13 @@ def add_note(user_id, action):
             bot.send_message(user_id, "Заметка успешно сохранена")
         else:
             bot.send_message(user_id, "Ошибка, попробуйте позже")
-        show_main_keyboard(user_id)
 
-def delete_note(user_id):
-    pass
 
-    
+def ask_delete_note(user_id):
+    bot.send_message(user_id, text=get_notes(user_id))
+    msg = bot.send_message(user_id, "Введите номер заметки которую хотите удалить")
+    replyes_message.update({user_id:(msg, "delete")})
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
@@ -48,17 +49,15 @@ def callback_inline(call):
     elif call.data == "add_note":
         add_note(call.from_user.id, "title")
     elif call.data == "delete_note":
-        delete_note(call.from_user.id)
+        ask_delete_note(call.from_user.id)
     
 
-
 @bot.message_handler(content_types=['text'])
-def greetings(message):
+def react_to_text(message):
     if message.text == "/start":
         bot.send_message(message.from_user.id, "Привет, сохраняй здесь свои заметки")
-        show_main_keyboard(message.from_user.id)
 
-    if message.reply_to_message:
+    if message.reply_to_message: 
         if message.reply_to_message.message_id == replyes_message[message.from_user.id][0].message_id:
             if replyes_message[message.from_user.id][1] == "title":
                 users_answers[message.from_user.id].append(message.text)
@@ -69,10 +68,15 @@ def greetings(message):
                 users_answers[message.from_user.id].append(message.text)
                 add_note(message.from_user.id, "send")
                 users_answers.clear()
-
-
-
-
-
-
+            
+            elif replyes_message[message.from_user.id][1] == "delete":
+                delete_ok = delete_note(message.from_user.id, message.text)
+                if delete_ok == True:
+                    bot.send_message(message.from_user.id, "Успешно")
+                else:
+                    bot.send_message(message.from_user.id, "Произошла ошибка, повторите позже")
+            
+    show_main_keyboard(message.from_user.id)
+                    
+            
 bot.polling(none_stop=True, interval=0)
