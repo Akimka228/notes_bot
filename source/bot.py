@@ -1,3 +1,8 @@
+'''
+TO DO:
+- есть ли у пользователя заметки?
+'''
+
 import telebot
 from bot_config import *
 from keyboard import *
@@ -44,12 +49,25 @@ def ask_delete_note(user_id):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    print(call)
     if call.data == "show_all":
         show_all(call.from_user.id)
     elif call.data == "add_note":
         add_note(call.from_user.id, "title")
     elif call.data == "delete_note":
         ask_delete_note(call.from_user.id)
+    elif call.data == "edit_note":
+        bot.send_message(call.from_user.id, text="Выберите редактируемую заметку", reply_markup=notes_for_edit_keyboard(call.from_user.id))
+    elif 
+    #если нажали на заметку, которую хотим отредактировать:
+        edit_note()
+
+
+if "edit" in "edit 12941290401249"
+
+def edit_note(user_id, edit_note_id):
+    print("Редактируем id = ", edit_note_id)
+
     
 
 @bot.message_handler(content_types=['text'])
@@ -74,7 +92,7 @@ def react_to_text(message):
                 if delete_ok == True:
                     bot.send_message(message.from_user.id, "Успешно")
                 else:
-                    bot.send_message(message.from_user.id, "Произошла ошибка, повторите позже")
+                    bot.send_message(message.from_user.id, "Произошла ошибка, повторите позже. Возможно вы ввели неверный номер заметки.")
             
     show_main_keyboard(message.from_user.id)
                     

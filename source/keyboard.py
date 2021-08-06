@@ -1,5 +1,8 @@
 import telebot
 from telebot import types
+from bot_config import *
+import requests
+import json
 
 
 def main_keyboard():
@@ -12,6 +15,19 @@ def main_keyboard():
     for btn in buttons:
         keyboard.add(btn)
     return keyboard
+
+
+
+def notes_for_edit_keyboard(user_id):
+    url = f'https://practicebot-a0f1.restdb.io/rest/notes?q=&filter={user_id}'
+    response = requests.request("GET", url, headers=headers)
+    notes = json.loads(response.text)
+    keyboard = types.InlineKeyboardMarkup()
+    for note in notes:
+        btn = types.InlineKeyboardButton(note["Title"], callback_data=" ")
+        keyboard.add(btn)
+    return keyboard
+    
 
 
  

@@ -3,9 +3,6 @@ import json
 from bot_config import *
 
 
-
- 
-
 def get_notes(user_id):
     url = f'https://practicebot-a0f1.restdb.io/rest/notes?q=&filter={user_id}'
     response = requests.request("GET", url, headers=headers)
@@ -32,11 +29,15 @@ def send_note(user_id, title, description):
         return False
 
 
-def delete_note(user_id, note_number):
+def delete_note(user_id : int, note_number : str):
+    if not note_number.isdigit():
+        return False
     note_number = int(note_number)
     get_url = f'https://practicebot-a0f1.restdb.io/rest/notes?q=&filter={user_id}'
     response = requests.request("GET", get_url, headers=headers)
     notes = json.loads(response.text)
+    if not note_number in range(1, len(notes)):
+        return False
     delete_note_id = notes[note_number - 1]["_id"]
     del_url = f"https://practicebot-a0f1.restdb.io/rest/notes/{delete_note_id}"
     response = requests.request("DELETE", del_url, headers=headers)
