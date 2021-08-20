@@ -1,19 +1,28 @@
-'''
-TO DO:
-- есть ли у пользователя заметки?
-'''
-
 import telebot
-from bot_config import *
+from bot_config import bot_apikey
 from keyboard import *
 from database import *
-import random
+from dataclasses import dataclass
+
+
+class User():
+    reply_message = None
+    title_answer = None
+    description_answer = None
+    edit_note_id = None
+
+
+@dataclass
+class Message():
+    id: int
+    action: str
+    _object: str = None
+
 
 bot = telebot.TeleBot(bot_apikey)
 
-replyes_message = {}
+users = {}
 
-users_answers = {}
 
 def show_main_keyboard(user_id):
     bot.send_message(user_id, text="Выберите действие", reply_markup=main_keyboard())
@@ -24,89 +33,71 @@ def show_all(user_id):
     show_main_keyboard(user_id)
 
 
-def add_note(user_id, action):
-    if action == "title":
-        users_answers.update({user_id:[]})
-        msg = bot.send_message(user_id, "Введите название добавляемой заметки. Для отправки, ответьте на данное сообщение своим")
-        replyes_message.update({user_id:(msg, "add_title")})
-
-    elif action == "description":
-        msg = bot.send_message(user_id, "Введите описание добавляемой заметки. Для отправки, ответьте на данное сообщение своим")
-        replyes_message.update({user_id:(msg, "add_description")})
-    
-    elif action == "send":
-        if send_note(user_id, users_answers[user_id][0], users_answers[user_id][1]):
-            bot.send_message(user_id, "Заметка успешно сохранена")
-        else:
-            bot.send_message(user_id, "Ошибка, попробуйте позже")
-
-
-def ask_delete_note(user_id):
-    bot.send_message(user_id, text=get_notes(user_id))
-    msg = bot.send_message(user_id, "Введите номер заметки которую хотите удалить")
-    replyes_message.update({user_id:(msg, "delete")})
-
-
 @bot.callback_query_handler(func=lambda button: True)
 def reaction_to_button(button):
     user_id = button.from_user.id
     if button.data == "show_all":
         show_all(user_id)
     elif button.data == "add_note":
-        add_note(user_id, "title")
-    elif button.data == "delete_note":
-        ask_delete_note(user_id)
+        users.update({user_id: User()})
+        ask_note_title(user_id, "add")
     elif button.data == "edit_note":
+        users.update({user_id: User()})
         bot.send_message(user_id, text="Выберите редактируемую заметку", reply_markup=notes_for_edit_keyboard(user_id))
     elif button.data in get_notes_id_list(user_id):
-        edit_note(user_id, 'title', button.data)
+        users[user_id].edit_note_id = button.data
+        ask_note_title(user_id, "edit")
+    elif button.data == "delete_note":
+        users.update({user_id: User()})
+        notes_text = format_notes_text(user_id)
+        if notes_text != "Вы еще не сделали заметок. Создайте.":
+            msg = bot.send_message(user_id, text="Введите номер\
+                                   удаляемой заметки")
+        bot.send_message(user_id, text=notes_text)
+        users[user_id].reply_message = Message(msg.message_id, "delete")
 
 
-def edit_note(user_id, action, note_id):
-    if action == "title":
-        users_answers.update({user_id:[]})
-        msg = bot.send_message(user_id, "Измените название редактируемой заметки. Для отправки ответьте на это сообщение своим")
-        replyes_message.update({user_id:(msg, "edit_title")})
-    elif action == "description":
-        msg = bot.send_message(user_id, "Измените описание редактируемой заметки. Для отправки, ответьте на данное сообщение своим")
-        replyes_message.update({user_id:(msg, "edit_description")})
-    elif action == "send_edits":
-        send_edited_note(users_answers[user_id][0], users_answers[user_id][1], note_id)
-
-    
 @bot.message_handler(content_types=['text'])
 def reaction_to_text(message):
+    user_id = message.from_user.id
     if message.text == "/start":
         bot.send_message(message.from_user.id, "Привет, сохраняй здесь свои заметки")
 
     if message.reply_to_message: 
-        if message.reply_to_message.message_id == replyes_message[message.from_user.id][0].message_id:
-            if replyes_message[message.from_user.id][1] == "add_title":
-                users_answers[message.from_user.id].append(message.text)
-                add_note(message.from_user.id, "description")
-
-            elif replyes_message[message.from_user.id][1] == "add_description":
-                users_answers[message.from_user.id].append(message.text)
-                add_note(message.from_user.id, "send")
-                users_answers.clear()
+        if message.reply_to_message.message_id == users[user_id].reply_message.id:
+            if users[user_id].reply_message._object == 'title':
+                users[user_id].title_answer = message.text
+                ask_note_description(user_id, users[user_id].reply_message.action)
             
-            elif replyes_message[message.from_user.id][1] == "edit_title":
-                users_answers[message.from_user.id].append(message.text)
-                edit_note(message.from_user.id, 'description')
+            elif users[user_id].reply_message._object == 'description':
+                users[user_id].description_answer = message.text
+                if users[user_id].reply_message.action == "add":
+                    send_note(user_id, users[user_id].title_answer, users[user_id].description_answer)
+                elif users[user_id].reply_message.action == "edit":
+                    send_edited_note(users[user_id].title_answer, users[user_id].description_answer, users[user_id].edit_note_id)
             
-            elif replyes_message[message.from_user.id][1] == "edit_description":
-                users_answers[message.from_user.id].append(message.text)
-                edit_note(message.from_user.id, "send_edits")
-
-            
-            elif replyes_message[message.from_user.id][1] == "delete":
-                delete_ok = delete_note(message.from_user.id, message.text)
-                if delete_ok == True:
-                    bot.send_message(message.from_user.id, "Успешно")
-                else:
-                    bot.send_message(message.from_user.id, "Произошла ошибка, повторите позже. Возможно вы ввели неверный номер заметки.")
-            
+            elif users[user_id].reply_message.action == "delete":
+                delete_note(user_id, message.text)
     show_main_keyboard(message.from_user.id)
-                    
-            
+
+
+def ask_note_title(user_id, action):
+    if action == "add":
+        msg = bot.send_message(user_id, "Введите название дела.\n\
+                               Необходимо ответить на данное сообщение")
+    if action == "edit":
+        msg = bot.send_message(user_id, "Введите новое название дела.\n\
+                               Необходимо ответить на данное сообщение")
+    users[user_id].reply_message = Message(msg.message_id, action, "title")
+
+
+def ask_note_description(user_id, action):
+    if action == "add":
+        msg = bot.send_message(user_id, "Введите описание дела. \n\
+                               Необходимо ответить на данное сообщение")                
+    if action == "edit":
+        msg = bot.send_message(user_id, "Введите новое описание дела. \n\
+                               Необходимо ответить на данное сообщение")
+    users[user_id].reply_message = Message(msg.message_id, action, "description")
+
 bot.polling(none_stop=True, interval=0)

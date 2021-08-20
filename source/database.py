@@ -17,8 +17,6 @@ def get_notes_id_list(user_id):
         notes_ids.append(note['_id'])
     return notes_ids
 
-
-    
 def format_notes_text(user_id):
     notes = get_notes(user_id)
     output_text = ''
